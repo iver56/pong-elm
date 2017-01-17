@@ -86,8 +86,68 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        Tick time ->
-            ( model, Cmd.none )
+        Tick delta ->
+            ( { model
+                | ball = updateBall delta model.paddleLeft model.paddleRight model.ball
+                , paddleLeft = updatePaddle delta model.paddleLeft
+                , paddleRight = updatePaddle delta model.paddleRight
+              }
+            , Cmd.none
+            )
+
+
+updatePaddle : Float -> Paddle -> Paddle
+updatePaddle delta paddle =
+    { paddle
+        | y =
+            clamp 0
+                (boardHeight - paddle.height)
+                (paddle.y + paddle.vy * delta)
+    }
+
+
+updateBall : Float -> Paddle -> Paddle -> Ball -> Ball
+updateBall delta paddleLeft paddleRight ball =
+    if ball.x < -ball.radius || ball.x > boardWidth + ball.radius then
+        { ball
+            | x = boardWidth / 2
+            , y = boardHeight / 2
+        }
+    else
+        let
+            vx =
+                if within ball paddleLeft then
+                    abs ball.vx
+                else if within ball paddleRight then
+                    -(abs ball.vx)
+                else
+                    ball.vx
+
+            vy =
+                if ball.y < ball.radius then
+                    abs ball.vy
+                else if ball.y > boardHeight - ball.radius then
+                    -(abs ball.vy)
+                else
+                    ball.vy
+        in
+            { ball
+                | x = ball.x + vx * delta
+                , y = ball.y + vy * delta
+                , vx = vx
+                , vy = vy
+            }
+
+
+near : Float -> Float -> Float -> Bool
+near a spacing b =
+    b >= a - spacing && b <= a + spacing
+
+
+within : Ball -> Paddle -> Bool
+within ball paddle =
+    near (paddle.x + paddle.width / 2) (paddle.width / 2 + ball.radius) ball.x
+        && near (paddle.y + paddle.height / 2) (paddle.height / 2 + ball.radius) ball.y
 
 
 
