@@ -16,6 +16,12 @@ boardHeight =
     300
 
 
+ballAccelerationFactor =
+    1.0005
+
+
+maxBallSpeed =
+    0.55
 
 -- MODEL
 
@@ -133,7 +139,9 @@ updateBall delta paddleLeft paddleRight ball =
                 else if within ball paddleRight then
                     -(abs ball.vx)
                 else
-                    ball.vx
+                    clamp -maxBallSpeed
+                        maxBallSpeed
+                        (ball.vx * ballAccelerationFactor)
 
             vy =
                 if ball.y < ball.radius then
@@ -141,7 +149,9 @@ updateBall delta paddleLeft paddleRight ball =
                 else if ball.y > boardHeight - ball.radius then
                     -(abs ball.vy)
                 else
-                    ball.vy
+                    clamp -maxBallSpeed
+                        maxBallSpeed
+                        (ball.vy * ballAccelerationFactor)
         in
             { ball
                 | x = ball.x + vx * delta
