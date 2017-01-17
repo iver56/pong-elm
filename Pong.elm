@@ -1,6 +1,21 @@
+module Main exposing (..)
+
 import Html exposing (..)
 import Svg exposing (..)
 import Svg.Attributes exposing (..)
+import AnimationFrame
+
+
+boardWidth =
+    500
+
+
+boardHeight =
+    300
+
+
+
+-- MODEL
 
 
 type alias Model =
@@ -9,20 +24,74 @@ type alias Model =
     , paddleRight : Paddle
     }
 
-init : Model
-init =
-    { ball = initBall
-    , paddleLeft = initPaddle 20
-    , paddleRight = initPaddle (boardWidth - 25)
+
+type alias Ball =
+    { x : Float
+    , y : Float
+    , vx : Float
+    , vy : Float
+    , radius : Float
     }
 
-type Msg = Tick
 
-update : Msg -> Model -> Model
+type alias Paddle =
+    { x : Float
+    , y : Float
+    , vx : Float
+    , vy : Float
+    , width : Float
+    , height : Float
+    }
+
+
+init : ( Model, Cmd Msg )
+init =
+    ( { ball = initBall
+      , paddleLeft = initPaddle 20
+      , paddleRight = initPaddle (boardWidth - 25)
+      }
+    , Cmd.none
+    )
+
+
+initBall : Ball
+initBall =
+    { x = boardWidth / 2
+    , y = boardHeight / 2
+    , vx = 0.3
+    , vy = 0.3
+    , radius = 8
+    }
+
+
+initPaddle : Float -> Paddle
+initPaddle x =
+    { x = x
+    , y = 0
+    , vx = 0.4
+    , vy = 0.4
+    , width = 5
+    , height = 80
+    }
+
+
+
+-- UPDATE
+
+
+type Msg
+    = Tick Float
+
+
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        Tick ->
-            model
+        Tick time ->
+            ( model, Cmd.none )
+
+
+
+-- VIEW
 
 
 view : Model -> Html Msg
@@ -42,55 +111,6 @@ view model =
         , paddleView model.paddleRight
         ]
 
-main =
-    Html.beginnerProgram
-        { model = init
-        , update = update
-        , view = view
-        }
-
-boardWidth =
-    500
-
-boardHeight =
-    300
-
-type alias Ball =
-    { x : Float
-    , y : Float
-    , vx : Float
-    , vy : Float
-    , radius : Float
-    }
-
-type alias Paddle =
-    { x : Float
-    , y : Float
-    , vx : Float
-    , vy : Float
-    , width : Float
-    , height : Float
-    }
-
-initBall : Ball
-initBall =
-    { x = boardWidth / 2
-    , y = boardHeight / 2
-    , vx = 0.3
-    , vy = 0.3
-    , radius = 8
-    }
-
-initPaddle : Float -> Paddle
-initPaddle x =
-    { x = x
-    , y = 0
-    , vx = 0.4
-    , vy = 0.4
-    , width = 5
-    , height = 80
-    }
-
 
 ballView : Ball -> Svg Msg
 ballView model =
@@ -102,6 +122,7 @@ ballView model =
         ]
         []
 
+
 paddleView : Paddle -> Svg Msg
 paddleView model =
     rect
@@ -112,3 +133,25 @@ paddleView model =
         , fill "white"
         ]
         []
+
+
+
+-- SUBSCRIPTIONS
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    AnimationFrame.diffs Tick
+
+
+
+-- MAIN
+
+
+main =
+    Html.program
+        { init = init
+        , update = update
+        , view = view
+        , subscriptions = subscriptions
+        }
