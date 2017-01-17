@@ -4,6 +4,8 @@ import Html exposing (..)
 import Svg exposing (..)
 import Svg.Attributes exposing (..)
 import AnimationFrame
+import Keyboard exposing (..)
+import Set exposing (Set)
 
 
 boardWidth =
@@ -22,6 +24,7 @@ type alias Model =
     { ball : Ball
     , paddleLeft : Paddle
     , paddleRight : Paddle
+    , keysDown : Set KeyCode
     }
 
 
@@ -49,6 +52,7 @@ init =
     ( { ball = initBall
       , paddleLeft = initPaddle 20
       , paddleRight = initPaddle (boardWidth - 25)
+      , keysDown = Set.empty
       }
     , Cmd.none
     )
@@ -81,28 +85,36 @@ initPaddle x =
 
 type Msg
     = Tick Float
+    | KeyUp KeyCode
+    | KeyDown KeyCode
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        KeyDown key ->
+            ( { model | keysDown = Set.insert key model.keysDown }, Cmd.none )
+
+        KeyUp key ->
+            ( { model | keysDown = Set.remove key model.keysDown }, Cmd.none )
+
         Tick delta ->
             ( { model
                 | ball = updateBall delta model.paddleLeft model.paddleRight model.ball
-                , paddleLeft = updatePaddle delta model.paddleLeft
-                , paddleRight = updatePaddle delta model.paddleRight
+                , paddleLeft = updatePaddle (paddleDirectionLeft model.keysDown) delta model.paddleLeft
+                , paddleRight = updatePaddle (paddleDirectionRight model.keysDown) delta model.paddleRight
               }
             , Cmd.none
             )
 
 
-updatePaddle : Float -> Paddle -> Paddle
-updatePaddle delta paddle =
+updatePaddle : Int -> Float -> Paddle -> Paddle
+updatePaddle direction delta paddle =
     { paddle
         | y =
             clamp 0
                 (boardHeight - paddle.height)
-                (paddle.y + paddle.vy * delta)
+                (paddle.y + (paddle.vy * (toFloat direction)) * delta)
     }
 
 
@@ -148,6 +160,26 @@ within : Ball -> Paddle -> Bool
 within ball paddle =
     near (paddle.x + paddle.width / 2) (paddle.width / 2 + ball.radius) ball.x
         && near (paddle.y + paddle.height / 2) (paddle.height / 2 + ball.radius) ball.y
+
+
+paddleDirectionLeft : Set KeyCode -> Int
+paddleDirectionLeft keysDown =
+    if Set.member 87 keysDown then
+        -1
+    else if Set.member 83 keysDown then
+        1
+    else
+        0
+
+
+paddleDirectionRight : Set KeyCode -> Int
+paddleDirectionRight keysDown =
+    if Set.member 38 keysDown then
+        -1
+    else if Set.member 40 keysDown then
+        1
+    else
+        0
 
 
 
@@ -201,7 +233,11 @@ paddleView model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    AnimationFrame.diffs Tick
+    Sub.batch
+        [ Keyboard.downs KeyDown
+        , Keyboard.ups KeyUp
+        , AnimationFrame.diffs Tick
+        ]
 
 
 
